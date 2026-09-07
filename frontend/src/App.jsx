@@ -11,7 +11,7 @@ import VulnerabilityView from './components/VulnerabilityView';
 import ReportView from './components/ReportView';
 import PresetReposModal from './components/PresetReposModal';
 import { analyzeRepositoryApi, getPresetsApi, getReportApi } from './api/apiClient';
-import { Layers, ShieldAlert, GitPullRequest, FileText, AlertCircle, RefreshCw } from 'lucide-react';
+import { Layers, ShieldAlert, GitPullRequest, FileText, AlertCircle, RefreshCw, Sparkles, ArrowLeft } from 'lucide-react';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(false);
@@ -75,29 +75,29 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-[#080c15] text-slate-100 flex flex-col bg-grid-pattern relative selection:bg-teal-500/30 selection:text-teal-200">
       {/* Top Navigation */}
       <Navbar onOpenPresets={() => setIsPresetsOpen(true)} onNewScan={handleNewScan} />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Error Alert */}
         {errorMessage && (
-          <div className="mb-6 p-4 rounded-xl bg-red-950/60 border border-red-800 text-red-300 flex items-center justify-between text-xs animate-in fade-in">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
-              <span>{errorMessage}</span>
+          <div className="mb-6 p-4 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-rose-200 flex items-center justify-between text-xs animate-in fade-in shadow-glow-rose">
+            <div className="flex items-center space-x-2.5">
+              <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
+              <span className="font-medium">{errorMessage}</span>
             </div>
             <button
               onClick={() => setErrorMessage(null)}
-              className="text-slate-400 hover:text-white ml-4 font-bold"
+              className="text-slate-400 hover:text-white ml-4 font-bold p-1"
             >
               ✕
             </button>
           </div>
         )}
 
-        {/* Hero Input Section (Always shown or collapsed when result exists) */}
+        {/* Hero Input Section */}
         {!analysisResult ? (
           <>
             <RepoInputHero
@@ -109,20 +109,21 @@ export default function App() {
             <AnalysisProgress isLoading={isLoading} />
           </>
         ) : (
-          <div className="space-y-6 animate-in fade-in">
+          <div className="space-y-6 animate-in fade-in duration-300">
             {/* Quick Re-scan button bar */}
-            <div className="flex items-center justify-between pb-2">
+            <div className="flex items-center justify-between pb-1">
               <button
                 onClick={handleNewScan}
-                className="flex items-center space-x-1.5 text-xs font-semibold text-teal-400 hover:text-teal-300 transition cursor-pointer"
+                className="flex items-center space-x-2 text-xs font-bold text-teal-400 hover:text-teal-300 transition cursor-pointer group"
               >
-                <span>&larr; Analyze Another Repository</span>
+                <ArrowLeft className="h-3.5 w-3.5 transition group-hover:-translate-x-1" />
+                <span>Analyze Another Repository</span>
               </button>
 
               <button
                 onClick={() => handleAnalyze(analysisResult.summary.url, analysisResult.summary.defaultBranch, '')}
                 disabled={isLoading}
-                className="flex items-center space-x-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition cursor-pointer"
+                className="flex items-center space-x-2 text-xs font-semibold px-3.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-white/[0.08] hover:border-teal-500/40 transition cursor-pointer shadow-sm"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin text-teal-400' : ''}`} />
                 <span>Re-scan Repository</span>
@@ -132,14 +133,14 @@ export default function App() {
             {/* Overview Metric Cards */}
             <OverviewMetrics summary={analysisResult.summary} />
 
-            {/* Tab Navigation */}
-            <div className="border-b border-slate-800 flex items-center space-x-2 sm:space-x-4 text-xs font-semibold">
+            {/* Luxury Segmented Control Tab Navigation */}
+            <div className="glass-panel p-1.5 rounded-2xl border border-white/[0.08] flex items-center justify-start overflow-x-auto gap-1 text-xs font-bold">
               <button
                 onClick={() => setActiveTab('inventory')}
-                className={`pb-3 px-3 border-b-2 transition flex items-center space-x-2 cursor-pointer ${
+                className={`py-2.5 px-4 rounded-xl transition duration-200 flex items-center space-x-2 shrink-0 cursor-pointer ${
                   activeTab === 'inventory'
-                    ? 'border-teal-500 text-teal-400 font-bold'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 shadow-glow-teal font-extrabold'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60'
                 }`}
               >
                 <Layers className="h-4 w-4" />
@@ -148,10 +149,10 @@ export default function App() {
 
               <button
                 onClick={() => setActiveTab('batches')}
-                className={`pb-3 px-3 border-b-2 transition flex items-center space-x-2 cursor-pointer ${
+                className={`py-2.5 px-4 rounded-xl transition duration-200 flex items-center space-x-2 shrink-0 cursor-pointer ${
                   activeTab === 'batches'
-                    ? 'border-teal-500 text-teal-400 font-bold'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 shadow-glow-teal font-extrabold'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60'
                 }`}
               >
                 <GitPullRequest className="h-4 w-4" />
@@ -160,10 +161,10 @@ export default function App() {
 
               <button
                 onClick={() => setActiveTab('vulnerabilities')}
-                className={`pb-3 px-3 border-b-2 transition flex items-center space-x-2 cursor-pointer ${
+                className={`py-2.5 px-4 rounded-xl transition duration-200 flex items-center space-x-2 shrink-0 cursor-pointer ${
                   activeTab === 'vulnerabilities'
-                    ? 'border-teal-500 text-teal-400 font-bold'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 shadow-glow-teal font-extrabold'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60'
                 }`}
               >
                 <ShieldAlert className="h-4 w-4" />
@@ -172,20 +173,20 @@ export default function App() {
 
               <button
                 onClick={() => setActiveTab('report')}
-                className={`pb-3 px-3 border-b-2 transition flex items-center space-x-2 cursor-pointer ${
+                className={`py-2.5 px-4 rounded-xl transition duration-200 flex items-center space-x-2 shrink-0 cursor-pointer ${
                   activeTab === 'report'
-                    ? 'border-teal-500 text-teal-400 font-bold'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 shadow-glow-teal font-extrabold'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60'
                 }`}
               >
                 <FileText className="h-4 w-4" />
-                <span>Executive Scan Report</span>
+                <span>Executive Report</span>
               </button>
             </div>
 
             {/* Tab Views */}
             {activeTab === 'inventory' && (
-              <div className="space-y-6 pt-2">
+              <div className="space-y-6 pt-1">
                 <RiskDistributionCharts
                   dependencies={analysisResult.dependencies}
                   summary={analysisResult.summary}
@@ -198,7 +199,7 @@ export default function App() {
             )}
 
             {activeTab === 'batches' && (
-              <div className="pt-2">
+              <div className="pt-1">
                 <BatchingView
                   batches={analysisResult.batches}
                   onSelectDependency={(dep) => setSelectedDependency(dep)}
@@ -207,7 +208,7 @@ export default function App() {
             )}
 
             {activeTab === 'vulnerabilities' && (
-              <div className="pt-2">
+              <div className="pt-1">
                 <VulnerabilityView
                   vulnerabilities={analysisResult.vulnerabilities}
                   dependencies={analysisResult.dependencies}
@@ -217,7 +218,7 @@ export default function App() {
             )}
 
             {activeTab === 'report' && (
-              <div className="pt-2">
+              <div className="pt-1">
                 <ReportView
                   report={reportData}
                   rawResult={analysisResult}
@@ -243,10 +244,10 @@ export default function App() {
       />
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-slate-800/80 py-6 text-center text-xs text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>DevOps Engineering Capstone &bull; Automated Dependency Risk Assessment &amp; Batching Strategy</span>
-          <span>Java 21 &bull; Spring Boot 3 &bull; React 18 &bull; OSV Security &bull; MySQL</span>
+      <footer className="mt-auto border-t border-white/[0.06] py-6 text-center text-xs text-slate-400 bg-[#060911]/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+          <span className="font-medium">DevOps Engineering Capstone &bull; Automated Dependency Risk Assessment &amp; Batching Strategy</span>
+          <span className="font-mono text-[11px] text-slate-400">Java 21 &bull; Spring Boot 3 &bull; React 18 &bull; OSV Security &bull; MySQL</span>
         </div>
       </footer>
     </div>
