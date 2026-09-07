@@ -176,11 +176,9 @@ public class RepositoryScannerService {
 
         // Fetch Lockfile contents
         for (GitHubApiClient.ManifestEntry lockEntry : lockfileEntries) {
-            if (lockEntry.rawDownloadUrl != null) {
-                String lockContent = gitHubClient.fetchFileContent(lockEntry.rawDownloadUrl, request.getGithubToken());
-                if (lockContent != null && !lockContent.trim().isEmpty()) {
-                    lockfileContents.put(lockEntry.path, lockContent);
-                }
+            String lockContent = gitHubClient.fetchFileContent(repoDetails, lockEntry.path, lockEntry.rawDownloadUrl, request.getGithubToken());
+            if (lockContent != null && !lockContent.trim().isEmpty()) {
+                lockfileContents.put(lockEntry.path, lockContent);
             }
         }
 
@@ -201,10 +199,7 @@ public class RepositoryScannerService {
             DependencyFileEntity fileEntity = new DependencyFileEntity(repoEntity, entry.path, parser.getSupportedEcosystem());
             fileEntity = fileRepository.save(fileEntity);
 
-            String content = null;
-            if (entry.rawDownloadUrl != null) {
-                content = gitHubClient.fetchFileContent(entry.rawDownloadUrl, request.getGithubToken());
-            }
+            String content = gitHubClient.fetchFileContent(repoDetails, entry.path, entry.rawDownloadUrl, request.getGithubToken());
             if ((content == null || content.trim().isEmpty()) && isDemo) {
                 content = getCuratedDemoContent(entry.path, repoDetails);
             }

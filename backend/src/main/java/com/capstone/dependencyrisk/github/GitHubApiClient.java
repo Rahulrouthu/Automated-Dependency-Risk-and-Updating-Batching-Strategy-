@@ -149,19 +149,27 @@ public class GitHubApiClient {
 
     private List<ManifestEntry> probeStandardManifests(RepoDetails repo, String token, String branch) {
         List<ManifestEntry> found = new ArrayList<>();
-        String[] candidateManifests = {"pom.xml", "package.json", "requirements.txt", "pyproject.toml", "build.gradle", "build.gradle.kts"};
-        String[] candidateLockfiles = {"package-lock.json", "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml"};
+        String[] candidateManifests = {
+                "pom.xml", "backend/pom.xml", "server/pom.xml", "app/pom.xml", "api/pom.xml",
+                "package.json", "frontend/package.json", "client/package.json", "web/package.json", "backend/package.json", "ui/package.json",
+                "requirements.txt", "backend/requirements.txt", "api/requirements.txt", "server/requirements.txt", "app/requirements.txt",
+                "pyproject.toml", "build.gradle", "build.gradle.kts"
+        };
+        String[] candidateLockfiles = {
+                "package-lock.json", "frontend/package-lock.json", "client/package-lock.json",
+                "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml"
+        };
 
         for (String file : candidateManifests) {
             String rawUrl = "https://raw.githubusercontent.com/" + repo.owner + "/" + repo.name + "/" + branch + "/" + file;
-            if (checkUrlExists(rawUrl, token)) {
+            if (checkFileAccessible(repo, file, rawUrl, token)) {
                 found.add(new ManifestEntry(file, rawUrl, false));
             }
         }
 
         for (String lock : candidateLockfiles) {
             String rawUrl = "https://raw.githubusercontent.com/" + repo.owner + "/" + repo.name + "/" + branch + "/" + lock;
-            if (checkUrlExists(rawUrl, token)) {
+            if (checkFileAccessible(repo, lock, rawUrl, token)) {
                 found.add(new ManifestEntry(lock, rawUrl, true));
             }
         }
@@ -169,14 +177,14 @@ public class GitHubApiClient {
         if (found.isEmpty() && !"master".equalsIgnoreCase(branch)) {
             for (String file : candidateManifests) {
                 String rawUrl = "https://raw.githubusercontent.com/" + repo.owner + "/" + repo.name + "/master/" + file;
-                if (checkUrlExists(rawUrl, token)) {
+                if (checkFileAccessible(repo, file, rawUrl, token)) {
                     repo.branch = "master";
                     found.add(new ManifestEntry(file, rawUrl, false));
                 }
             }
             for (String lock : candidateLockfiles) {
                 String rawUrl = "https://raw.githubusercontent.com/" + repo.owner + "/" + repo.name + "/master/" + lock;
-                if (checkUrlExists(rawUrl, token)) {
+                if (checkFileAccessible(repo, lock, rawUrl, token)) {
                     found.add(new ManifestEntry(lock, rawUrl, true));
                 }
             }
@@ -221,6 +229,36 @@ public class GitHubApiClient {
                lower.endsWith("pnpm-lock.yml");
     }
 
+    private boolean checkFileAccessible(RepoDetails repo, String path, String rawUrl, String token) {
+        // 1. Try GitHub Contents API
+        try {
+            String branch = repo.branch != null ? repo.branch : "main";
+            String apiUrl = "https://api.github.com/repos/" + repo.owner + "/" + repo.name + "/contents/" + path + "?ref=" + branch;
+            HttpHeaders headers = createHeaders(token);
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<String> res = restTemplate.exchange(apiUrl, HttpMethod.HEAD, entity, String.class);
+            if (res.getStatusCode().is2xxSuccessful()) {
+                return true;
+            }
+        } catch (Exception ignored) {}
+
+        // 2. Try CDN URL
+        try {
+            String branch = repo.branch != null ? repo.branch : "main";
+            String cdnUrl = "https://cdn.jsdelivr.net/gh/" + repo.owner + "/" + repo.name + "@" + branch + "/" + path;
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("User-Agent", "Automated-Dependency-Risk-Analyzer/1.0");
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<String> res = restTemplate.exchange(cdnUrl, HttpMethod.HEAD, entity, String.class);
+            if (res.getStatusCode().is2xxSuccessful()) {
+                return true;
+            }
+        } catch (Exception ignored) {}
+
+        // 3. Fallback to rawUrl check
+        return checkUrlExists(rawUrl, token);
+    }
+
     private boolean checkUrlExists(String url, String token) {
         try {
             HttpHeaders headers = createHeaders(token);
@@ -230,6 +268,52 @@ public class GitHubApiClient {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public String fetchFileContent(RepoDetails repo, String path, String rawUrl, String token) {
+        String activeToken = (token != null && !token.trim().isEmpty()) ? token : defaultToken;
+
+        // 1. Primary: GitHub Contents API with Base64 decode (immune to raw.githubusercontent DNS/timeout issues)
+        if (repo != null && repo.owner != null && repo.name != null && path != null) {
+            try {
+                String branch = repo.branch != null ? repo.branch : "main";
+                String apiUrl = "https://api.github.com/repos/" + repo.owner + "/" + repo.name + "/contents/" + path + "?ref=" + branch;
+                HttpHeaders headers = createHeaders(activeToken);
+                HttpEntity<Void> entity = new HttpEntity<>(headers);
+                ResponseEntity<String> res = restTemplate.exchange(apiUrl, HttpMethod.GET, entity, String.class);
+                if (res.getStatusCode().is2xxSuccessful() && res.getBody() != null) {
+                    JsonNode node = objectMapper.readTree(res.getBody());
+                    if (node.has("content")) {
+                        String encoded = node.get("content").asText().replaceAll("\\s+", "");
+                        byte[] decodedBytes = Base64.getDecoder().decode(encoded);
+                        return new String(decodedBytes, java.nio.charset.StandardCharsets.UTF_8);
+                    }
+                }
+            } catch (Exception e) {
+                log.debug("GitHub Contents API fetch failed for {}: {}", path, e.getMessage());
+            }
+
+            // 2. Secondary: Fast CDN Mirror
+            try {
+                String branch = repo.branch != null ? repo.branch : "main";
+                String cdnUrl = "https://cdn.jsdelivr.net/gh/" + repo.owner + "/" + repo.name + "@" + branch + "/" + path;
+                HttpHeaders headers = new HttpHeaders();
+                headers.set("User-Agent", "Automated-Dependency-Risk-Analyzer/1.0");
+                HttpEntity<Void> entity = new HttpEntity<>(headers);
+                ResponseEntity<String> res = restTemplate.exchange(cdnUrl, HttpMethod.GET, entity, String.class);
+                if (res.getStatusCode().is2xxSuccessful() && res.getBody() != null && !res.getBody().trim().isEmpty()) {
+                    return res.getBody();
+                }
+            } catch (Exception e) {
+                log.debug("CDN mirror fetch failed for {}: {}", path, e.getMessage());
+            }
+        }
+
+        // 3. Fallback to rawUrl
+        if (rawUrl != null) {
+            return fetchFileContent(rawUrl, activeToken);
+        }
+        return null;
     }
 
     public String fetchFileContent(String rawUrl, String token) {
