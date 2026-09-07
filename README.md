@@ -84,7 +84,7 @@ Database (MySQL 8.0 / In-memory H2 Dev Mode)
 cd backend
 ./mvnw spring-boot:run
 ```
-*The backend starts at `http://localhost:8080` with in-memory H2 database (or MySQL if configured).*
+*The backend starts at `http://localhost:8085` with in-memory H2 database (or MySQL if configured).*
 
 #### Step 2: Start Frontend (React + Vite)
 ```bash
