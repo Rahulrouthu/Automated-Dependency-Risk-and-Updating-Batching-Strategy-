@@ -1,0 +1,76 @@
+server:
+  port: 8085
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: automated-dependency-risk-assessment
+  profiles:
+    active: dev
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: true
+  jpa:
+    open-in-view: false
+    show-sql: false
+
+app:
+  github:
+    api-base-url: https://api.github.com
+    raw-base-url: https://raw.githubusercontent.com
+    token: ${GITHUB_TOKEN:}
+    connect-timeout-ms: 10000
+    read-timeout-ms: 20000
+  security:
+    osv-api-url: https://api.osv.dev/v1/query
+    osv-batch-url: https://api.osv.dev/v1/querybatch
+  registries:
+    npm-url: https://registry.npmjs.org
+    pypi-url: https://pypi.org/pypi
+    maven-repo1-url: https://repo1.maven.org/maven2
+  risk:
+    weights:
+      version-change: 25.0
+      security-vulnerability: 35.0
+      compatibility-breaking: 20.0
+      dependency-impact: 12.0
+      build-integrity: 8.0
+    thresholds:
+      low-max: 24.0
+      medium-max: 49.0
+      high-max: 74.0
+      critical-min: 75.0
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:h2:mem:dependency_risk_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:dependency_risk_db}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root}
+  jpa:
+    hibernate:
+      ddl-auto: update

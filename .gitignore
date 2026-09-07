@@ -1,0 +1,42 @@
+# Dependencies & packages
+node_modules/
+**/node_modules/
+backend/target/
+**/target/
+.tools/
+dist/
+build/
+.gradle/
+
+# Environment and local configs
+.env
+.env.local
+*.local
+
+# IDE & Editor files
+.idea/
+*.iml
+.vscode/
+*.suo
+*.user
+*.userosv
+*.sln.docstates
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs & Temporary test artifacts
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.system_generated/
+scratch/
+
+# Database files
+*.db
+*.h2.db
